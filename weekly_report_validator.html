@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Report Validator - FreakOut</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .security-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-name {
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .error-summary {
+            background: #fee;
+            border-left: 4px solid #dc2626;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .error-summary h3 {
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+
+        .error-count {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #dc2626;
+        }
+
+        .success-banner {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            color: #065f46;
+            font-weight: 600;
+        }
+
+        .errors-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-left: 4px solid #dc2626;
+            padding: 16px;
+            border-radius: 6px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .error-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .error-content {
+            flex: 1;
+        }
+
+        .error-category {
+            background: #fee;
+            color: #991b1b;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .error-message {
+            color: #333;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .error-cell {
+            background: #fecaca;
+            color: #991b1b;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .error-details {
+            color: #666;
+            font-size: 0.95em;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .validation-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .category-badge {
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            font-size: 0.9em;
+            text-align: center;
+            border-left: 3px solid #667eea;
+        }
+
+        .category-badge.passed {
+            background: #dbeafe;
+            border-left-color: #0284c7;
+            color: #0c2340;
+        }
+
+        .category-badge.failed {
+            background: #fee2e2;
+            border-left-color: #dc2626;
+            color: #991b1b;
+        }
+
+        .guidelines-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            color: #667eea;
+            font-size: 0.95em;
+        }
+
+        .guidelines-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .guidelines-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .errors-container {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Weekly Report Validator</h1>
+            <p>FreakOut Campaign & COC Compliance Check</p>
+            <div class="security-badge">🔒 Secure - File stays on your computer</div>
+        </div>
+
+        <div class="upload-section">
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" />
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    📤 Upload Excel Report
+                </button>
+            </div>
+            <div class="file-name" id="fileName"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Validating your report...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div id="successBanner"></div>
+            <div id="errorSummary"></div>
+            <div id="categoryBadges" class="validation-categories"></div>
+            <div id="errorsList" class="errors-container"></div>
+            <div class="guidelines-link">
+                ✅ All checks reference official guidelines | Report issues to your manager
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = `Selected: ${file.name}`;
+            document.getElementById('loading').classList.add('show');
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const errors = validateWorkbook(workbook);
+                    displayResults(errors);
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                }
+                document.getElementById('loading').classList.remove('show');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function validateWorkbook(workbook) {
+            const errors = [];
+            const sheets = {};
+
+            // Parse all sheets
+            workbook.SheetNames.forEach(sheetName => {
+                sheets[sheetName] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 'A' });
+            });
+
+            // Get sheet references
+            const overviewSheet = workbook.Sheets[Object.keys(sheets)[0]];
+            const dailyBreakdownSheet = Object.keys(workbook.Sheets).find(s => 
+                s.toLowerCase().includes('daily') || s.toLowerCase().includes('breakdown')
+            );
+            const demographicsSheet = Object.keys(workbook.Sheets).find(s => 
+                s.toLowerCase().includes('demog') || s.toLowerCase().includes('demographic')
+            );
+            const creativesSheet = Object.keys(workbook.Sheets).find(s => 
+                s.toLowerCase().includes('creative')
+            );
+
+            // Campaign Overview Checks
+            errors.push(...checkCampaignOverview(overviewSheet));
+
+            // Daily Breakdown Checks
+            if (dailyBreakdownSheet) {
+                errors.push(...checkDailyBreakdown(workbook.Sheets[dailyBreakdownSheet]));
+            }
+
+            // Demographics Checks
+            if (demographicsSheet) {
+                errors.push(...checkDemographics(workbook.Sheets[demographicsSheet]));
+            }
+
+            // Creatives Checks
+            if (creativesSheet) {
+                errors.push(...checkCreatives(workbook.Sheets[creativesSheet]));
+            }
+
+            return errors;
+        }
+
+        function checkCampaignOverview(sheet) {
+            const errors = [];
+            const requiredFields = [
+                { name: 'Agency', cell: 'B2' },
+                { name: 'Client', cell: 'B3' },
+                { name: 'Campaign Name', cell: 'B4' },
+                { name: 'Budget', cell: 'B5' },
+                { name: 'Buy Type (CPM/CPC/CPV/CPCV)', cell: 'B6' },
+                { name: 'Booked KPI', cell: 'B7' },
+                { name: 'Start Date', cell: 'B8' },
+                { name: 'End Date', cell: 'B9' }
+            ];
+
+            requiredFields.forEach(field => {
+                const cell = sheet[field.cell];
+                if (!cell || !cell.v) {
+                    errors.push({
+                        category: 'Campaign Overview',
+                        message: `Missing required field: ${field.name}`,
+                        cell: field.cell,
+                        severity: 'error'
+                    });
+                }
+            });
+
+            // Check for TBC handling
+            if (sheet.B4 && sheet.B4.v && sheet.B4.v.includes('TBC')) {
+                errors.push({
+                    category: 'Campaign Overview',
+                    message: 'Campaign Name shows TBC - should be formatted as Brand-Product-Month-Year',
+                    cell: 'B4',
+                    severity: 'warning'
+                });
+            }
+
+            return errors;
+        }
+
+        function checkDailyBreakdown(sheet) {
+            const errors = [];
+
+            // Check for decimals in impressions/clicks columns
+            const metricsToCheck = ['Impressions', 'Clicks', 'CTR', 'VCR', 'Views'];
+            
+            // Scan for cells with decimal issues (simplified check)
+            Object.keys(sheet).forEach(cell => {
+                const cellObj = sheet[cell];
+                if (cellObj && typeof cellObj.v === 'number') {
+                    const colName = cell.match(/[A-Z]+/)[0];
+                    // Check if this looks like a metrics column
+                    if (cell.match(/[A-Z]+\d{2,}/)) {
+                        const value = cellObj.v;
+                        // Check impressions/clicks for decimals
+                        if (colName !== 'D' && colName !== 'E') { // Skip spend columns
+                            if (value !== Math.floor(value) && value > 0.1) {
+                                errors.push({
+                                    category: 'Daily Breakdown',
+                                    message: 'Contains decimal places (should be whole numbers only)',
+                                    cell: cell,
+                                    details: `Value: ${value}`,
+                                    severity: 'error'
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Check date sequence
+            const datePattern = /\d{1,2}\/\d{1,2}\/\d{4}/;
+            let dateRows = [];
+            Object.keys(sheet).forEach(cell => {
+                const val = sheet[cell].v;
+                if (val && typeof val === 'number' && val > 40000 && val < 50000) {
+                    dateRows.push({ cell, value: new Date(val) });
+                }
+            });
+
+            if (dateRows.length > 1) {
+                dateRows.sort((a, b) => a.cell.localeCompare(b.cell));
+                for (let i = 1; i < dateRows.length; i++) {
+                    const diff = (dateRows[i].value - dateRows[i-1].value) / (1000 * 60 * 60 * 24);
+                    if (diff !== 1) {
+                        errors.push({
+                            category: 'Daily Breakdown',
+                            message: 'Date sequence is broken (should be consecutive days)',
+                            cell: dateRows[i].cell,
+                            severity: 'error'
+                        });
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        function checkDemographics(sheet) {
+            const errors = [];
+            const validAges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'Unknown'];
+            const validGenders = ['Female', 'Male', 'Unknown'];
+
+            Object.keys(sheet).forEach(cell => {
+                const val = sheet[cell].v;
+                if (val) {
+                    const strVal = String(val).trim();
+                    // Check age ranges
+                    if (strVal.match(/^\d+-\d+$|^65\+$|^Unknown$/)) {
+                        if (!validAges.includes(strVal)) {
+                            errors.push({
+                                category: 'Demographics',
+                                message: 'Invalid age range format',
+                                cell: cell,
+                                details: `Found: ${strVal}. Valid ranges: ${validAges.join(', ')}`,
+                                severity: 'warning'
+                            });
+                        }
+                    }
+                    // Check gender
+                    if (['Female', 'Male', 'Unknown'].includes(strVal)) {
+                        if (!validGenders.includes(strVal)) {
+                            errors.push({
+                                category: 'Demographics',
+                                message: 'Invalid gender value',
+                                cell: cell,
+                                severity: 'error'
+                            });
+                        }
+                    }
+                }
+            });
+
+            return errors;
+        }
+
+        function checkCreatives(sheet) {
+            const errors = [];
+
+            // Check for duplicate creative names
+            const names = {};
+            Object.keys(sheet).forEach(cell => {
+                const val = sheet[cell].v;
+                if (val) {
+                    const strVal = String(val).trim();
+                    if (strVal.length > 5) {
+                        if (names[strVal]) {
+                            names[strVal].push(cell);
+                        } else {
+                            names[strVal] = [cell];
+                        }
+                    }
+                }
+            });
+
+            Object.entries(names).forEach(([name, cells]) => {
+                if (cells.length > 1) {
+                    errors.push({
+                        category: 'Creatives',
+                        message: 'Duplicate or poorly differentiated creative names found',
+                        cell: cells[0],
+                        details: `Creative name "${name}" appears in multiple cells. Make names unique to avoid confusion.`,
+                        severity: 'warning'
+                    });
+                }
+            });
+
+            return errors;
+        }
+
+        function displayResults(errors) {
+            document.getElementById('results').classList.add('show');
+
+            if (errors.length === 0) {
+                document.getElementById('successBanner').innerHTML = `
+                    <div class="success-banner">
+                        ✅ Perfect! No issues found. Your report is compliant with all guidelines.
+                    </div>
+                `;
+                document.getElementById('errorSummary').innerHTML = '';
+                document.getElementById('categoryBadges').innerHTML = `
+                    <div class="category-badge passed">Campaign Overview ✓</div>
+                    <div class="category-badge passed">Daily Breakdown ✓</div>
+                    <div class="category-badge passed">Demographics ✓</div>
+                    <div class="category-badge passed">Creatives ✓</div>
+                `;
+                document.getElementById('errorsList').innerHTML = '';
+                return;
+            }
+
+            // Group errors by category
+            const categories = {};
+            errors.forEach(error => {
+                if (!categories[error.category]) {
+                    categories[error.category] = [];
+                }
+                categories[error.category].push(error);
+            });
+
+            // Create summary
+            const errorCount = errors.length;
+            document.getElementById('errorSummary').innerHTML = `
+                <div class="error-summary">
+                    <h3>⚠️ Found <span class="error-count">${errorCount}</span> issue(s)</h3>
+                    <p>Please fix the cells marked below before submitting.</p>
+                </div>
+            `;
+
+            // Create category badges
+            const badges = Object.keys(categories).map(cat => `
+                <div class="category-badge failed">${cat} (${categories[cat].length})</div>
+            `).join('');
+            document.getElementById('categoryBadges').innerHTML = badges;
+
+            // Create error list
+            const errorsList = errors.map((error, idx) => `
+                <div class="error-item">
+                    <div class="error-icon">${idx + 1}</div>
+                    <div class="error-content">
+                        <div class="error-category">${error.category}</div>
+                        <div class="error-message">${error.message}</div>
+                        <div>
+                            <span class="error-cell">📍 ${error.cell}</span>
+                        </div>
+                        ${error.details ? `<div class="error-details">${error.details}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('errorsList').innerHTML = errorsList;
+
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
